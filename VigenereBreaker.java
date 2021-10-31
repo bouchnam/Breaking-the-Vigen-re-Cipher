@@ -22,11 +22,18 @@ public class VigenereBreaker {
     public void breakVigenere () {
         FileResource fr = new FileResource();
         String message = fr.asString();
-        FileResource di = new FileResource();
-        HashSet<String> dictionary = readDictionary(di);
-        String decrypted = breakForLanguage(message, dictionary);
+        HashMap<String, HashSet<String>> map= new HashMap<String, HashSet<String>>();
+        String[] lables = {"Danish", "Dutch", "English", "French", "German", "Italian", "Portuguese", "Spanish"};
+        for (String lag : lables){
+            FileResource di = new FileResource("dictionaries/" + lag);
+            HashSet<String> dictionary = readDictionary(di);
+            map.put(lag, dictionary);
+            System.out.println("language is :" + lag + " " + dictionary.size());
+        }
+        
+        String decrypted = breakForAllLangs(message, map);
         System.out.println(decrypted);
-        System.out.println(countWords(decrypted, dictionary));
+        //System.out.println(countWords(decrypted, dictionary));
     }
     
     public HashSet<String> readDictionary(FileResource fr){
@@ -54,8 +61,9 @@ public class VigenereBreaker {
         int maxi = 0;
         String result = "";
         int klength = 0;
+        char mostUsed = mostCommonCharIn(dictionary);
         for (int i = 1; i < 101; i++){
-            int[] key = tryKeyLength(encrypted, i, 'e');
+            int[] key = tryKeyLength(encrypted, i, mostUsed);
             VigenereCipher VC = new VigenereCipher(key);
             String message = VC.decrypt(encrypted);
             if (countWords(message, dictionary) > maxi){
@@ -68,6 +76,38 @@ public class VigenereBreaker {
         return result;
     }
     
+    public char mostCommonCharIn(HashSet<String> dictionary){
+        int[] occurencies = new int[27];
+        String alphabet = "abcdefghijklmnopqrstuvwxyz";
+        for (String word : dictionary){
+            for (int i = 0; i < word.length(); i++){
+                int index = alphabet.indexOf(word.charAt(i));
+                if (index != -1){
+                    occurencies[index] += 1;
+                }
+            }
+        }
+        CaesarCracker CC = new CaesarCracker();
+        int maxIndex = CC.maxIndex(occurencies);
+        return alphabet.charAt(maxIndex);
+    }
+    
+    public String breakForAllLangs(String encrypted, HashMap<String, HashSet<String>> map){
+        int maxi = 0;
+        String result = "";
+        String lagUsed = "";
+        for (String lag : map.keySet()){
+            String message = breakForLanguage(encrypted, map.get(lag));
+            int count = countWords(message, map.get(lag));
+            if (count > maxi){
+                maxi = count;
+                result = message;
+                lagUsed = lag;
+            }
+        }
+        System.out.println(lagUsed);
+        return result;
+    }
     public void test(){
         //System.out.println(sliceString("abcdefghijklm", 1, 4));
         //FileResource fr = new FileResource();
@@ -81,5 +121,6 @@ public class VigenereBreaker {
         //String message = VC.decrypt(encrypted);
         //System.out.println(countWords(message,dictionary));
         breakVigenere();
+        //System.out.println(mostCommonCharIn(dictionary));
     }
 }
